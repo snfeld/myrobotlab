@@ -268,7 +268,7 @@ public class LLM extends Service<LLMConfig> implements TextListener, TextPublish
       final int[] lastProcessedLength = { 0 }; // Track the length of already
                                                // processed text
 
-      OllamaResult result = ollamaAPI.generate("llama3", finalText, false, new OptionsBuilder().build(), (s) -> {
+      OllamaResult result = ollamaAPI.generate(config.model, finalText, false, new OptionsBuilder().build(), (s) -> {
         // Append only the new portion of the text
         String newText = s.substring(lastProcessedLength[0]);
         sentenceBuilder[0].append(newText);
