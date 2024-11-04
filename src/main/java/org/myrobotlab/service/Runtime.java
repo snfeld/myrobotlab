@@ -1486,7 +1486,7 @@ public class Runtime extends Service<RuntimeConfig> implements MessageListener, 
   public static String getLatestVersion() {
     String latest = "https://myrobotlab-repo.s3.us-east-1.amazonaws.com/latestVersion.txt";
     byte[] b = Http.get(latest);
-    String version = (b == null) ? "unknown" : "1.1." + new String(b);
+    String version = (b == null) ? "unknown" : new String(b);
     return version;
   }
 
@@ -2846,7 +2846,7 @@ public class Runtime extends Service<RuntimeConfig> implements MessageListener, 
 
     setLocale(Locale.getDefault().getTag());
     locales = Locale.getDefaults();
-    
+
     Platform platform = Platform.getLocalInstance();
 
     String libararyPath = System.getProperty("java.library.path");

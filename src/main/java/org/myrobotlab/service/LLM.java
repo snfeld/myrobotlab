@@ -145,6 +145,7 @@ public class LLM extends Service<LLMConfig> implements TextListener, TextPublish
       URL url = new URL(config.url);
       ollam4JUrl = config.url;
       api = new OllamaAPI(String.format("%s://%s:%d", url.getProtocol(), url.getHost(), url.getPort()));
+      api.setRequestTimeoutSeconds(config.timeout);
     }
     return api;
   }
@@ -349,6 +350,26 @@ public class LLM extends Service<LLMConfig> implements TextListener, TextPublish
         responseText = result.getResponse();
       }
       
+      // we are at the end of our response of streaming, and now the "result" will unblock signalling the end of the response
+      // now we have to check to see if there is any extra text on the end that did not get published
+      if (handler.sentenceBuilder[0] != null && handler.sentenceBuilder[0].length() > 0) {
+        invoke("publishText", handler.sentenceBuilder[0].toString());
+
+        Utterance utterance = new Utterance();
+        utterance.username = getName();
+        utterance.text = handler.sentenceBuilder[0].toString();
+        utterance.isBot = true;
+        utterance.channel = currentChannel;
+        utterance.channelType = currentChannelType;
+        utterance.channelBotName = currentBotName;
+        utterance.channelName = currentChannelName;
+        invoke("publishUtterance", utterance);
+        
+        
+        Response response = new Response("friend", getName(), handler.sentenceBuilder[0].toString(), null);
+        invoke("publishResponse", response);
+                
+      }
 
       Response response = new Response("friend", getName(), responseText, null);
       invoke("publishResponse", response);
@@ -365,6 +386,7 @@ public class LLM extends Service<LLMConfig> implements TextListener, TextPublish
 
     final StringBuilder[] sentenceBuilder = { new StringBuilder() };
     final int[] lastProcessedLength = { 0 }; // Track the length of already
+    public String potentialSentence = null;
 
     @Override
     public void accept(String message) {
@@ -386,7 +408,7 @@ public class LLM extends Service<LLMConfig> implements TextListener, TextPublish
 
       if (lastSentenceEndIndex != -1) {
         // Extract the potential sentence
-        String potentialSentence = sentenceBuilder[0].substring(0, lastSentenceEndIndex + 1).trim();
+        potentialSentence = sentenceBuilder[0].substring(0, lastSentenceEndIndex + 1).trim();
 
         // Only process if the sentence is above the minimum length
         if (potentialSentence.length() >= MIN_SENTENCE_LENGTH) {
@@ -401,6 +423,11 @@ public class LLM extends Service<LLMConfig> implements TextListener, TextPublish
           utterance.channelBotName = currentBotName;
           utterance.channelName = currentChannelName;
           invoke("publishUtterance", utterance);
+          
+          
+          Response response = new Response("friend", getName(), potentialSentence, null);
+          invoke("publishResponse", response);
+
 
           // Keep any remaining text after the last sentence-ending character
           sentenceBuilder[0] = new StringBuilder(sentenceBuilder[0].substring(lastSentenceEndIndex + 1));
@@ -712,6 +739,7 @@ public class LLM extends Service<LLMConfig> implements TextListener, TextPublish
 
       Response response = null;
       LLM llm = (LLM) Runtime.start("llm", "LLM");
+      // llm.getConfig().timeout = 1;
       Runtime.start("python", "Python");
 
       WebGui webgui = (WebGui) Runtime.create("webgui", "WebGui");

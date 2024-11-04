@@ -30,6 +30,10 @@ public class LLMConfig extends ServiceConfig {
    */
   public int maxHistory = 5; 
 
+  /**
+   * client side timeout waiting for response
+   */
+  public int timeout = 1000;
   
   /**
    * static prefix to send to gpt3
