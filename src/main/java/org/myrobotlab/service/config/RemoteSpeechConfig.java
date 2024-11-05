@@ -35,6 +35,14 @@ public class RemoteSpeechConfig extends SpeechSynthesisConfig {
   public Plan getDefault(Plan plan, String name) {
     super.getDefault(plan, name);
     addDefaultPeerConfig(plan, name, "http", "HttpClient", true);
+    
+    Endpoint piper = new Endpoint();
+    piper.url = "http://localhost:5000/?text={{text}}";
+    piper.verb = "GET";
+    piper.template = null;
+    piper.authToken = null;
+    speechTypes.put("Piper", piper);
+
 
     Endpoint coqui = new Endpoint();
     coqui.url = "http://localhost:5002/api/tts?text={{text}}&speaker_id=p376&style_wav=&language_id=";

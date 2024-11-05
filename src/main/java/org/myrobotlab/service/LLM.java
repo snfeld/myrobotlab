@@ -144,7 +144,17 @@ public class LLM extends Service<LLMConfig> implements TextListener, TextPublish
     if (api == null || ollam4JUrl == null || !ollam4JUrl.contentEquals(config.url)) {
       URL url = new URL(config.url);
       ollam4JUrl = config.url;
-      api = new OllamaAPI(String.format("%s://%s:%d", url.getProtocol(), url.getHost(), url.getPort()));
+      Integer port = null;
+      if (url.getPort() == -1) {
+        if (url.getProtocol() == "https") {
+          port = 443;
+        } else {
+          port = 80;
+        }
+      } else {
+        port = url.getPort();
+      }
+      api = new OllamaAPI(String.format("%s://%s:%d", url.getProtocol(), url.getHost(), port));
       api.setRequestTimeoutSeconds(config.timeout);
     }
     return api;
@@ -352,7 +362,7 @@ public class LLM extends Service<LLMConfig> implements TextListener, TextPublish
       
       // we are at the end of our response of streaming, and now the "result" will unblock signalling the end of the response
       // now we have to check to see if there is any extra text on the end that did not get published
-      if (handler.sentenceBuilder[0] != null && handler.sentenceBuilder[0].length() > 0) {
+      if (handler.sentenceBuilder[0] != null && handler.sentenceBuilder[0].toString().trim().length() > 0) {
         invoke("publishText", handler.sentenceBuilder[0].toString());
 
         Utterance utterance = new Utterance();
@@ -474,8 +484,8 @@ public class LLM extends Service<LLMConfig> implements TextListener, TextPublish
         log.info("curl {} -d '{}'", config.url, json);
 
         String msg = http.postJson(config.password, config.url, json);
-        log.error("url: {}", config.url);
-        log.error("json: {}", json);
+        log.info("url: {}", config.url);
+        log.info("json: {}", json);
         System.out.print(json);
 
         Map<String, Object> payload = CodecUtils.fromJson(msg, new StaticType<>() {

@@ -1674,6 +1674,10 @@ public class OpenCV extends AbstractComputerVision<OpenCVConfig> implements Imag
   public String recordFrame() {
     try {
       OpenCVData d = getOpenCVData();
+      if (d == null) {
+        log.warn("could not get current frame - getting last frame");
+        d = getLastData();
+      }
       String filename = d.writeDisplay(getDataDir(), "png");
       info("saved frame %s", filename);
       return filename;
