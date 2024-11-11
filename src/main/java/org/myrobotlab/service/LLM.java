@@ -5,8 +5,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -722,31 +724,30 @@ public class LLM extends Service<LLMConfig> implements TextListener, TextPublish
     userMessages.clear();
   }
 
+  public static URI toFileURI(String filePath) throws URISyntaxException {
+    try {
+        URI uri = new URI(filePath);
+        if (uri.isAbsolute()) {
+            return uri;
+        }
+    } catch (URISyntaxException e) {
+    }
+
+    Path path = Paths.get(filePath);
+    
+    return path.toUri();
+}
+  
   @Override
   public void onImage(ImageData img) {
-    StringBuilder fileUrl = new StringBuilder();
-    if (img.encoding == null && img.src != null && (!img.src.startsWith("file://") && !img.src.startsWith("http://") && !img.src.startsWith("https://"))) {
-      if (img.src.startsWith("/") || img.src.contains(":\\")) {
-        // absolute path already
-        fileUrl.append("file://");
-        // Windows :()
-        if (img.src != null) {
-          fileUrl.append(img.src.replace("\\", "/"));
-        }
-        if (img.source != null) {
-          fileUrl.append(img.source.replace("\\", "/"));
-        }
-
-      } else {
-        // assume relative
-        File file = new File(img.src);
-        fileUrl.append("file://");
-        fileUrl.append(file.getAbsolutePath());
-      }
-    }
+    try {
+    String src = (img.src != null)?img.src:img.source;
     List<String> urls = new ArrayList<>();
-    urls.add(fileUrl.toString());
+    urls.add(toFileURI(src).toASCIIString());
     getResponse(urls);
+    } catch(Exception e) {
+      error(e);
+    }
   }
 
   public static void main(String[] args) {
