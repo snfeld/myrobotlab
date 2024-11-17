@@ -177,9 +177,13 @@ public class NeoPixel extends Service<NeoPixelConfig> implements NeoPixelControl
 
     // FIXME - this should just wait/notify - not start a thread
     public synchronized void start() {
-      running = false;
-      thread = new Thread(this, String.format("%s-animation-runner", getName()));
-      thread.start();
+      if (thread == null) {
+        running = true;
+        thread = new Thread(this, String.format("%s-animation-runner", getName()));
+        thread.start();
+      } else {
+        log.info("animation runner already running");
+      }
     }
 
     public synchronized void stop() {
