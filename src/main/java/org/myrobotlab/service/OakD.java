@@ -69,8 +69,8 @@ public class OakD extends Service<OakDConfig> {
 
       // git.clone("./", config.depthaiCloneUrl)
       List<String> packages = new ArrayList<>();
-      packages.add("depthai==2.20.2.0");
-      packages.add("blobconverter==1.4.1");
+      packages.add("depthai==2.29.0");
+      packages.add("blobconverter==1.4.3");
       packages.add("opencv-python");
       packages.add("numpy");
       py4j.installPipPackages(packages);
