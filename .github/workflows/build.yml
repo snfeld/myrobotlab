@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     outputs:
-      version: ${{ steps.version.outputs.version }} # Make version an output
+      version: ${{ steps.version.outputs.version }}
 
     steps:
       - uses: actions/checkout@v3
@@ -29,7 +29,7 @@ jobs:
         run: mvn test -Dtest=org.myrobotlab.framework.DependencyTest -q
 
       - name: Get next version
-        id: version # ID needed to reference in outputs
+        id: version
         uses: reecetech/version-increment@2023.9.3
         with:
           scheme: semver
@@ -91,13 +91,16 @@ jobs:
           echo "" >> changelog.md
           git log --pretty=format:"- %s" -n 10 >> changelog.md
           echo "" >> changelog.md
-          cat changelog.md
+
+      - name: Read Change Log into Variable
+        id: read_changelog
+        run: echo "CHANGELOG<<EOF" >> $GITHUB_ENV && cat changelog.md >> $GITHUB_ENV && echo "EOF" >> $GITHUB_ENV
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          tag_name: "v${{ needs.build.outputs.version }}" # Ensure correct reference
+          tag_name: "v${{ needs.build.outputs.version }}"
           name: "MyRobotLab Nixie v${{ needs.build.outputs.version }}"
           body: |
             ## MyRobotLab Nixie Release
@@ -114,7 +117,7 @@ jobs:
             You will need **Java 11 or newer**. If you are only running MyRobotLab, you need the JRE (Java Runtime Environment).  
             If you are building from source, you will need the JDK (Java Development Kit). Oracle or OpenJDK will work.
 
-            $(cat changelog.md)
+            ${{ env.CHANGELOG }}
 
           files: target/myrobotlab-${{ needs.build.outputs.version }}.zip
           draft: false
