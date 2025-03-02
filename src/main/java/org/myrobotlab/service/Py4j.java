@@ -10,7 +10,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.bytedeco.javacpp.Loader;
 import org.myrobotlab.codec.CodecUtils;
 import org.myrobotlab.framework.Message;
 import org.myrobotlab.framework.Platform;
@@ -156,10 +155,6 @@ public class Py4j extends Service<Py4jConfig> implements GatewayServerListener, 
    */
   protected Py4jClient pythonProcess = null;
 
-  /**
-   * The base command to launch the Python interpreter without any arguments.
-   */
-  protected transient String pythonCommand = "python";
 
   public Py4j(String n, String id) {
     super(n, id);
@@ -172,9 +167,9 @@ public class Py4j extends Service<Py4jConfig> implements GatewayServerListener, 
    * data/Py4j/{serviceName}
    * 
    * @param scriptName
-   *          - name of the script
+   *                   - name of the script
    * @param code
-   *          - code block
+   *                   - code block
    */
   public void addScript(String scriptName, String code) {
     Py4jConfig c = (Py4jConfig) config;
@@ -208,7 +203,7 @@ public class Py4j extends Service<Py4jConfig> implements GatewayServerListener, 
    * removes script from memory of openScripts
    * 
    * @param scriptName
-   *          The name of the script to close.
+   *                   The name of the script to close.
    */
   public void closeScript(String scriptName) {
     openedScripts.remove(scriptName);
@@ -244,7 +239,7 @@ public class Py4j extends Service<Py4jConfig> implements GatewayServerListener, 
    * One of 3 methods supported on the MessageHandler() callbacks
    * 
    * @param code
-   *          The Python code to execute in the interpreter.
+   *             The Python code to execute in the interpreter.
    */
   @Override
   public boolean exec(String code) {
@@ -263,7 +258,8 @@ public class Py4j extends Service<Py4jConfig> implements GatewayServerListener, 
   }
 
   private String getClientKey(Py4JServerConnection gatewayConnection) {
-    return String.format("%s:%d", gatewayConnection.getSocket().getInetAddress(), gatewayConnection.getSocket().getPort());
+    return String.format("%s:%d", gatewayConnection.getSocket().getInetAddress(),
+        gatewayConnection.getSocket().getPort());
   }
 
   /**
@@ -291,7 +287,7 @@ public class Py4j extends Service<Py4jConfig> implements GatewayServerListener, 
    * immediately publishes the output on {@link #publishStdOut(String)}.
    *
    * @param msg
-   *          The output from a py4j related subprocess.
+   *            The output from a py4j related subprocess.
    */
   public void handleStdOut(String msg) {
     if (!"\n".equals(msg)) {
@@ -322,7 +318,7 @@ public class Py4j extends Service<Py4jConfig> implements GatewayServerListener, 
    * Opens an example "service" script maintained in myrobotlab
    * 
    * @param serviceType
-   *          the type of service
+   *                    the type of service
    * @throws IOException
    */
   public void openExampleScript(String serviceType) throws IOException {
@@ -342,8 +338,8 @@ public class Py4j extends Service<Py4jConfig> implements GatewayServerListener, 
    * data/Py4j/{serviceName} directory.
    * 
    * @param scriptName
-   *          - name of the script file relatie to scriptRootDir
-   *          data/Py4j/{serviceName}/
+   *                   - name of the script file relatie to scriptRootDir
+   *                   data/Py4j/{serviceName}/
    * @throws IOException
    */
   public void openScript(String scriptName) throws IOException {
@@ -472,65 +468,85 @@ public class Py4j extends Service<Py4jConfig> implements GatewayServerListener, 
    * MessageHandler and setup for runtime references to work
    */
   public void startPythonProcess() {
-    try {
-
-      // Specify the Python script path and arguments
-      String pythonScript = new File(getResourceDir() + fs + "Py4j.py").getAbsolutePath();
-
-      // Script requires full name as first command line argument
-      String[] pythonArgs = { getFullName() };
-
-      // Build the command to start the Python process
-      ProcessBuilder processBuilder;
-      if (((Py4jConfig) config).useBundledPython) {
-        String venv = getDataDir() + fs + "venv";
-        pythonCommand = (Platform.getLocalInstance().isWindows()) ? venv + fs + "Scripts" + fs + "python.exe" : venv + fs + "bin" + fs + "python";
-        if (!FileIO.checkDir(venv)) {
-          // We don't have an initialized virtual environment, so lets make one
-          // and install our required packages
-          String python = Loader.load(org.bytedeco.cpython.python.class);
-          String venvLib = new File(python).getParent() + fs + "lib" + fs + "venv" + fs + "scripts" + fs + "nt";
-          if (Platform.getLocalInstance().isWindows()) {
-            // Super hacky workaround, venv works differently on Windows and
-            // requires these two
-            // files, but they are not distributed in bare-bones Python or in
-            // any pip packages.
-            // So we copy them where it expects, and it seems to work now
-            FileIO.copy(getResourceDir() + fs + "python.exe", venvLib + fs + "python.exe");
-            FileIO.copy(getResourceDir() + fs + "pythonw.exe", venvLib + fs + "pythonw.exe");
-          }
-          ProcessBuilder installProcess = new ProcessBuilder(python, "-m", "venv", venv);
-          int ret = installProcess.inheritIO().start().waitFor();
-          if (ret != 0) {
-            error("Could not create virtual environment, subprocess returned {}. If on Windows, make sure there is a python.exe file in {}", ret, venvLib);
-            return;
+      try {
+          // Determine Python executable
+          String pythonCommand = findPythonExecutable();
+          if (pythonCommand == null) {
+              error("Python is not installed or not found in system PATH.");
+              return;
           }
 
-          installProcess = new ProcessBuilder(pythonCommand, "-m", "pip", "install", "py4j");
-          ret = installProcess.inheritIO().start().waitFor();
-          if (ret != 0) {
-            error("Could not install package, subprocess returned " + ret);
-            return;
+          // Define paths
+          String venv = getDataDir() + fs + "venv";
+          String pythonScript = new File(getResourceDir() + fs + "Py4j.py").getAbsolutePath();
+          String[] pythonArgs = { getFullName() };
+
+          // Check if virtual environment exists, if not, create and install dependencies
+          File venvDir = new File(venv);
+          String venvPython = Platform.getLocalInstance().isWindows() 
+              ? venv + fs + "Scripts" + fs + "python.exe" 
+              : venv + fs + "bin" + fs + "python";
+
+          if (!venvDir.exists()) {
+              ProcessBuilder venvProcess = new ProcessBuilder(pythonCommand, "-m", "venv", venv);
+              int ret = venvProcess.inheritIO().start().waitFor();
+              if (ret != 0) {
+                  error("Failed to create virtual environment.");
+                  return;
+              }
+
+              // Install py4j inside venv
+              ProcessBuilder pipProcess = new ProcessBuilder(venvPython, "-m", "pip", "install", "py4j");
+              ret = pipProcess.inheritIO().start().waitFor();
+              if (ret != 0) {
+                  error("Failed to install py4j in the virtual environment.");
+                  return;
+              }
           }
 
-        }
+          // Validate py4j is installed
+          ProcessBuilder checkPy4j = new ProcessBuilder(venvPython, "-c", "import py4j");
+          int checkRet = checkPy4j.inheritIO().start().waitFor();
+          if (checkRet != 0) {
+              error("py4j is not installed properly in the virtual environment.");
+              return;
+          }
 
-        // Virtual environment should exist, so lets use that python
-      } else {
-        // Just use the system python
-        pythonCommand = "python";
+          // Ensure the virtual environment's Python is used
+          ProcessBuilder processBuilder = new ProcessBuilder(venvPython, pythonScript);
+          processBuilder.redirectErrorStream(true);
+          processBuilder.command().addAll(List.of(pythonArgs));
+
+          pythonProcess = new Py4jClient(this, processBuilder.start());
+
+      } catch (Exception e) {
+          error(e);
       }
-      processBuilder = new ProcessBuilder(pythonCommand, pythonScript);
-      processBuilder.redirectErrorStream(true);
-      processBuilder.command().addAll(List.of(pythonArgs));
-
-      // Start the Python process
-      pythonProcess = new Py4jClient(this, processBuilder.start());
-
-    } catch (Exception e) {
-      error(e);
-    }
   }
+
+  /**
+   * Finds the Python executable and returns its path. 
+   * Checks both "python3" and "python" commands.
+   */
+  private String findPythonExecutable() {
+      try {
+          ProcessBuilder processBuilder = new ProcessBuilder("python3", "--version");
+          Process process = processBuilder.start();
+          int exitCode = process.waitFor();
+          if (exitCode == 0) return "python3";
+      } catch (Exception ignored) {}
+
+      try {
+          ProcessBuilder processBuilder = new ProcessBuilder("python", "--version");
+          Process process = processBuilder.start();
+          int exitCode = process.waitFor();
+          if (exitCode == 0) return "python";
+      } catch (Exception ignored) {}
+
+      return null; // Python not found
+  }
+
+
 
   /**
    * Install a list of packages into the environment Py4j is running in. Py4j
@@ -539,14 +555,14 @@ public class Py4j extends Service<Py4jConfig> implements GatewayServerListener, 
    * {@link #handleStdOut(String)}.
    * 
    * @param packages
-   *          The list of packages to install. Must be findable by Pip
+   *                 The list of packages to install. Must be findable by Pip
    * @throws IOException
-   *           If an I/O error occurs running Pip.
+   *                     If an I/O error occurs running Pip.
    */
   public void installPipPackages(List<String> packages) throws IOException {
     List<String> commandArgs = new ArrayList<>(List.of("-m", "pip", "install"));
     commandArgs.addAll(packages);
-    ProcessBuilder pipProcess = new ProcessBuilder(pythonCommand);
+    ProcessBuilder pipProcess = new ProcessBuilder(findPythonExecutable());
     pipProcess.command().addAll(commandArgs);
     Process proc = pipProcess.redirectErrorStream(true).start();
     new Thread(() -> {
