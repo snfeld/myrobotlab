@@ -11,9 +11,9 @@ public class EmailConfig extends ServiceConfig {
   public String auth = "true";
   public String debug = "true";
   public String format = "html"; // text/html or text/plain
-  public String from = null;
-  public String host = null;
-  public String pass = null;
+  public String from = "";
+  public String host = "";
+  public String pass = "";
   public String protocols = "TLSv1.2";
   public String port = "25"; /* 465, 587 */
   public String socketFactory = "javax.net.ssl.SSLSocketFactory";
