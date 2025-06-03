@@ -1,10 +1,8 @@
 package org.myrobotlab.service;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -101,7 +99,6 @@ public class RuntimeTest extends AbstractTest {
     assertEquals("fr-FR", l.toString());
 
   }
-  
 
   @Test
   public void testGetDescribeMessage() {
@@ -111,6 +108,35 @@ public class RuntimeTest extends AbstractTest {
     assertEquals("Incorrect UUID for describe message", Gateway.FILL_UUID_MAGIC_VAL, msg.data[0]);
     assertTrue("Incorrect message second parameter type", DescribeQuery.class.isAssignableFrom(msg.data[1].getClass()));
     assertEquals("Incorrect UUID in describe query", "testUUID", ((DescribeQuery) msg.data[1]).uuid);
+  }
+
+  @Test
+  public void testGetLatestVersion() {
+    if (hasInternet()) {
+      try {
+        String latestVersion = Runtime.getLatestVersion();
+        Assert.assertNotNull("Latest version should not be null", latestVersion);
+        Assert.assertFalse("Latest version should not be empty", latestVersion.isEmpty());
+
+        // The version should not contain the leading 'v' since getLatestVersion
+        // removes it
+        Assert.assertFalse("Version should not start with 'v'", latestVersion.startsWith("v"));
+
+        // Version should follow semantic versioning pattern (x.y.z)
+        String[] versionParts = latestVersion.split("\\.");
+        Assert.assertTrue("Version should have at least 2 parts (major.minor)", versionParts.length >= 2);
+
+        log.info("Latest version retrieved: {}", latestVersion);
+      } catch (Exception e) {
+        // If remote service is unavailable, the method should still return
+        // "unknown"
+        // rather than throwing an exception
+        log.error("testGetLatestVersion failed", e);
+        Assert.fail("getLatestVersion should not throw exceptions, but return 'unknown' on failure");
+      }
+    } else {
+      log.info("Skipping testGetLatestVersion - no internet connection");
+    }
   }
 
 }

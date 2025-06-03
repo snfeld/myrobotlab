@@ -1487,8 +1487,13 @@ public class Runtime extends Service<RuntimeConfig> implements MessageListener, 
   public static String getLatestVersion() {
     String latest = "https://myrobotlab-repo.s3.us-east-1.amazonaws.com/latestVersion.txt";
     byte[] b = Http.get(latest);
-    String version = (b == null) ? "unknown" : new String(b);
-    return version;
+
+    String v = "{\"tag_name\":\"unknown\"}";
+    if (b != null) {
+      v = new String(b);
+    }
+    Map githubVersion = (Map) CodecUtils.fromJson(v);
+    return ((String) githubVersion.get("tag_name")).replaceFirst("^v", "");
   }
 
   // FIXME - shouldn't this be in platform ???
