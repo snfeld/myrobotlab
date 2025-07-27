@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - develop
+  workflow_dispatch:
 
 jobs:
   build:
@@ -44,23 +45,23 @@ jobs:
       - name: Rename Artifact
         run: mv target/myrobotlab.zip target/myrobotlab-${{ steps.version.outputs.version }}.zip
 
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
-
-      - name: Upload Artifact to S3
-        run: |
-          FILE="target/myrobotlab-${{ steps.version.outputs.version }}.zip"
-          BUCKET="myrobotlab-repo"
-
-          echo "Uploading $FILE to S3 bucket $BUCKET..."
-          aws s3 cp "$FILE" "s3://$BUCKET/" --acl public-read
-
-          echo "Updating permalink myrobotlab.zip..."
-          aws s3 cp "$FILE" "s3://$BUCKET/myrobotlab.zip" --acl public-read
+#      - name: Configure AWS Credentials
+#        uses: aws-actions/configure-aws-credentials@v2
+#        with:
+#          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+#          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+#          aws-region: us-east-1
+#
+#      - name: Upload Artifact to S3
+#        run: |
+#          FILE="target/myrobotlab-${{ steps.version.outputs.version }}.zip"
+#          BUCKET="myrobotlab-repo"
+#
+#          echo "Uploading $FILE to S3 bucket $BUCKET..."
+#          aws s3 cp "$FILE" "s3://$BUCKET/" --acl public-read
+#
+#          echo "Updating permalink myrobotlab.zip..."
+#          aws s3 cp "$FILE" "s3://$BUCKET/myrobotlab.zip" --acl public-read
 
       - name: Upload Artifact for Release
         uses: actions/upload-artifact@v4
@@ -114,7 +115,7 @@ jobs:
             * Project Website: [MyRobotLab.org](http://myrobotlab.org)  
             * Project Discord: [Join here](https://discord.gg/AfScp5x8r5)  
             * Download Built Application: [Nixie v${{ needs.build.outputs.version }}](https://myrobotlab-repo.s3.amazonaws.com/myrobotlab-${{ needs.build.outputs.version }}.zip)  
-            * [JavaDocs](https://build.myrobotlab.org:8443/job/myrobotlab/job/develop/$build/artifact/target/site/apidocs/org/myrobotlab/service/package-summary.html)  
+             
 
             ## Base Requirements
             You will need **Java 11 or newer**. If you are only running MyRobotLab, you need the JRE (Java Runtime Environment).  
